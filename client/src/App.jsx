@@ -1,4 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from '@tanstack/react-table'
 import './App.css'
 
 function App() {
@@ -75,6 +80,59 @@ function App() {
     setShowAddForm(false)
   }
 
+  // Define columns for react-table
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'sno',
+        header: 'S.No',
+        cell: ({ row }) => row.index + 1,
+        size: 80,
+      },
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ getValue }) => getValue(),
+      },
+      {
+        accessorKey: 'email',
+        header: 'Email',
+        cell: ({ getValue }) => getValue(),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <div className="action-buttons">
+            <button 
+              className="edit-btn"
+              onClick={() => handleEdit(row.original)}
+              title="Edit User"
+            >
+              Edit
+            </button>
+            <button 
+              className="delete-btn"
+              onClick={() => handleDelete(row.original.id)}
+              title="Delete User"
+            >
+              Delete
+            </button>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  // Create table instance
+  const table = useReactTable({
+    data: users,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
   return (
     <div className="user-list-container">
       <h1>User List</h1>
@@ -91,40 +149,36 @@ function App() {
         
         <table className="user-table">
           <thead>
-            <tr>
-              <th>S.No</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Actions</th>
-            </tr>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <th key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="4" className="no-data">No users found. Click "Add User" to add some users.</td>
+                <td colSpan={columns.length} className="no-data">
+                  No users found. Click "Add User" to add some users.
+                </td>
               </tr>
             ) : (
-              users.map((user, index) => (
-                <tr key={user.id}>
-                  <td>{index + 1}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td className="action-buttons">
-                    <button 
-                      className="edit-btn"
-                      onClick={() => handleEdit(user)}
-                      title="Edit User"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDelete(user.id)}
-                      title="Delete User"
-                    >
-                      Delete
-                    </button>
-                  </td>
+              table.getRowModel().rows.map(row => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <td key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
                 </tr>
               ))
             )}
